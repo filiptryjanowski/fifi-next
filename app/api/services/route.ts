@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "../_db";
+import pool from "../_pg";
 
-// Tworzenie tabeli jeśli nie istnieje
-const createTable = () => {
-    db.prepare(`CREATE TABLE IF NOT EXISTS services (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    price TEXT
-  )`).run();
+const createTable = async () => {
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      price TEXT
+    )
+  `);
 };
 
 export async function GET() {
-    createTable();
-    const services = db.prepare("SELECT * FROM services").all();
-    return NextResponse.json(services);
+    await createTable();
+    const result = await pool.query("SELECT * FROM services");
+    return NextResponse.json(result.rows);
 }
 
 export async function POST(req: NextRequest) {
-    createTable();
+    await createTable();
     const { name, price } = await req.json();
-    const info = db.prepare("INSERT INTO services (name, price) VALUES (?, ?)").run(name, price);
-    const newService = { id: info.lastInsertRowid, name, price };
+    const info = await pool.query(
+        "INSERT INTO services (name, price) VALUES ($1, $2) RETURNING *",
+        [name, price]
+    );
+    const newService = info.rows[0];
     return NextResponse.json(newService, { status: 201 });
 } 
