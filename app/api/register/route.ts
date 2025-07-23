@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import pool from "../_pg";
+import db from "../_db";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -7,18 +7,16 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
         return NextResponse.json({ success: false, message: "Email i hasło są wymagane" }, { status: 400 });
     }
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email TEXT UNIQUE,
-      password TEXT
-    )
-  `);
-    const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (userExists.rows.length > 0) {
+    db.prepare(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE,
+    password TEXT
+  )`).run();
+    const userExists = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+    if (userExists) {
         return NextResponse.json({ success: false, message: "Użytkownik już istnieje" }, { status: 409 });
     }
     const hash = await bcrypt.hash(password, 10);
-    await pool.query("INSERT INTO users (email, password) VALUES ($1, $2)", [email, hash]);
+    db.prepare("INSERT INTO users (email, password) VALUES (?, ?)").run(email, hash);
     return NextResponse.json({ success: true, message: "Rejestracja zakończona sukcesem" });
 } 

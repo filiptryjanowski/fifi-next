@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import pool from "../_pg";
+import db from "../_db";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -7,18 +7,15 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
         return NextResponse.json({ success: false, message: "Email i hasło są wymagane" }, { status: 400 });
     }
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email TEXT UNIQUE,
-      password TEXT
-    )
-  `);
-    const userRes = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (userRes.rows.length === 0) {
+    db.prepare(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE,
+    password TEXT
+  )`).run();
+    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+    if (!user) {
         return NextResponse.json({ success: false, message: "Nieprawidłowy e-mail lub hasło" }, { status: 401 });
     }
-    const user = userRes.rows[0];
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
         return NextResponse.json({ success: false, message: "Nieprawidłowy e-mail lub hasło" }, { status: 401 });

@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import pool from "../_pg";
+import db from "../_db";
 
 export async function POST(req: NextRequest) {
   const data = await req.json();
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS contact (
-      id SERIAL PRIMARY KEY,
-      name TEXT,
-      email TEXT,
-      message TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  await pool.query(
-    "INSERT INTO contact (name, email, message) VALUES ($1, $2, $3)",
-    [data.name || "", data.email || "", data.message || ""]
+  // Tworzenie tabeli jeśli nie istnieje
+  db.prepare(`CREATE TABLE IF NOT EXISTS contact (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT,
+    message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+  // Wstawianie danych
+  db.prepare("INSERT INTO contact (name, email, message) VALUES (?, ?, ?)").run(
+    data.name || "",
+    data.email || "",
+    data.message || ""
   );
   return NextResponse.json({ success: true, message: "Wiadomość zapisana!" });
 } 
