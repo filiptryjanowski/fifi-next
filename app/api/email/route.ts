@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     try {
         await transporter.sendMail({
             from: 'filiptryjanowki5@gmail.com', 
-            to: 'filiptryjanowki5@gmail.com',
+            to: 'bogdan.bon3r80@gmail.com',
             subject,
             text,
         });

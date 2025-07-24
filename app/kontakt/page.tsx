@@ -120,6 +120,16 @@ export default function Kontakt() {
                 const emailData = await emailRes.json();
                 if (emailData.success) {
                     setEmailStatus("E-mail powiadamiający został wysłany!");
+                    // Wysyłka autorespondera do użytkownika
+                    await fetch("/api/email", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            to: contact.email,
+                            subject: "Dziękujemy za kontakt!",
+                            text: `Dziękujemy za wiadomość, ${contact.name || "Użytkowniku"}!\nTwoja wiadomość została przyjęta i wkrótce się z Tobą skontaktujemy.\nPozdrawiamy,\nZespół Fifi`
+                        }),
+                    });
                 } else {
                     setEmailStatus("Błąd wysyłki e-maila: " + (emailData.message || "Nie udało się wysłać e-maila"));
                 }
