@@ -15,6 +15,8 @@ export default function Kontakt() {
     const [showLogout, setShowLogout] = useState(false);
     const [loginStatus, setLoginStatus] = useState("");
     const [emailStatus, setEmailStatus] = useState("");
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const loginModalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -97,6 +99,7 @@ export default function Kontakt() {
         e.preventDefault();
         setContactStatus("Wysyłanie...");
         setEmailStatus("");
+        setIsLoading(true);
         try {
             const res = await fetch("/api/contact", {
                 method: "POST",
@@ -107,14 +110,16 @@ export default function Kontakt() {
             if (data.success) {
                 setContactStatus("Wiadomość wysłana!");
                 setContact({ name: "", email: "", message: "" });
+                setShowSuccessModal(true);
                 // Wysyłka e-maila do właściciela strony
                 const emailRes = await fetch("/api/email", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        to: "filiptryjanowski5@gmail.com",
+                        to: "bogdan.bon3r80@gmail.com",
                         subject: `Nowa wiadomość kontaktowa od ${contact.name}`,
                         text: `Email: ${contact.email}\nWiadomość: ${contact.message}`,
+                        replyTo: contact.email
                     }),
                 });
                 const emailData = await emailRes.json();
@@ -138,6 +143,8 @@ export default function Kontakt() {
             }
         } catch (err) {
             setContactStatus("Błąd połączenia z serwerem");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -230,13 +237,33 @@ export default function Kontakt() {
                             Wiadomość:
                             <textarea name="message" value={contact.message} onChange={handleContactChange} required style={{ width: "100%", color: '#000', background: '#fff', border: '1px solid #000', borderRadius: 6, padding: "0.5rem", fontSize: "1rem", marginTop: "0.3rem", minHeight: 90, resize: 'vertical', transition: 'border 0.2s' }} />
                         </label>
-                        <button type="submit" style={{ background: "#000", color: "#fff", border: "none", borderRadius: 6, padding: "0.6rem 1.2rem", fontSize: "1rem", fontWeight: "bold", cursor: "pointer", transition: "background 0.2s, color 0.2s" }}
+                        <button type="submit" style={{ background: "#000", color: "#fff", border: "none", borderRadius: 6, padding: "0.6rem 1.2rem", fontSize: "1rem", fontWeight: "bold", cursor: "pointer", transition: "background 0.2s, color 0.2s", position: 'relative' }}
                             onMouseOver={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#000'; e.currentTarget.style.border = '1px solid #000'; }}
                             onMouseOut={e => { e.currentTarget.style.background = '#000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-                        >Wyślij</button>
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span className="loader" style={{ width: 18, height: 18, border: '3px solid #ccc', borderTop: '3px solid #000', borderRadius: '50%', display: 'inline-block', marginRight: 8, animation: 'spin 1s linear infinite' }}></span>
+                                    Wysyłanie...
+                                </span>
+                            ) : (
+                                'Wyślij'
+                            )}
+                        </button>
                         {contactStatus && <div style={{ color: contactStatus.includes("Błąd") ? "red" : "green", textAlign: 'center' }}>{contactStatus}</div>}
                         {emailStatus && <div style={{ color: emailStatus.includes("Błąd") ? "red" : "green", textAlign: 'center' }}>{emailStatus}</div>}
                     </form>
+                    {/* Modal sukcesu */}
+                    {showSuccessModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6000 }}>
+                            <div style={{ background: '#fff', border: '2px solid #000', borderRadius: 12, padding: '2rem 2.5rem', minWidth: 320, boxShadow: '0 0 24px 4px hsl(0, 0%, 16%)', display: 'flex', flexDirection: 'column', gap: '1.2rem', alignItems: 'center' }}>
+                                <h2 style={{ color: '#000', margin: 0 }}>Dziękujemy!</h2>
+                                <p style={{ color: '#000', margin: 0 }}>Twoja wiadomość została wysłana.<br />Skontaktujemy się z Tobą wkrótce.</p>
+                                <button onClick={() => setShowSuccessModal(false)} style={{ background: '#000', color: '#fff', border: 'none', borderRadius: 6, padding: '0.6rem 1.2rem', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: 12 }}>Zamknij</button>
+                            </div>
+                        </div>
+                    )}
                 </section>
             </main>
             <div id="logged-user" style={{ position: "fixed", top: "1.2rem", left: "2rem", color: "white", fontWeight: "bold", zIndex: 2000 }}>{user}</div>
